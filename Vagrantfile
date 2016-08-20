@@ -34,9 +34,20 @@ Vagrant.configure("2") do |config|
   	end
     
     # START backend PROVISION SECTION
-    config.vm.provision "shell", inline: <<-SHELL
-       
+    backend.vm.provision "shell", inline: <<-SHELL
+        
+        echo "INSTALLING MYSQL-SERVER with password root"
+        echo "mysql-server mysql-server/root_password password root" | sudo debconf-set-selections
+        echo "mysql-server mysql-server/root_password_again password root" | sudo debconf-set-selections
+        sudo apt-get -y install mysql-server
+        
+        echo "MYSQL: RESTRICT ROOT CONNECT FROM NETWORK TO MYSQL"
+        mysql -uroot -proot -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
+    
+        echo "CREATE DATABASE AND USER FOR WORDPRESS"
+        /vagrant/backend/mysql/db_config.sh
     SHELL
+
     # FINISH backend PROVISION SECTION
 
   end
@@ -63,10 +74,17 @@ Vagrant.configure("2") do |config|
 		  end
 
     # START web PROVISION SECTION
-    config.vm.provision "shell", inline: <<-SHELL
+    web.vm.provision "shell", inline: <<-SHELL
+       
+       echo "INSTALLING APACHE2 AND PHP5"
        apt-get install -y apache2 php5
+       
+       echo "CREATE SIMLINK TO FOLDER SITES-ENABLED"
        ln -s /etc/apache2/sites-available/web.devops.loc.conf /etc/apache2/sites-enabled/web.devops.loc.conf
+       
+       echo "RESTART APACHE2 SERVICE"
        service apache2 restart
+
     SHELL
     # FINISH web PROVISION SECTION
 	
@@ -76,8 +94,13 @@ Vagrant.configure("2") do |config|
 
 # START GLOBAL PROVISION SECTION
   config.vm.provision "shell", inline: <<-SHELL
+     
+     echo "UPDATE REPO"
      apt-get update
+     
+     echo "INSTALL COMMON SOFTWARE"
      apt-get install -y htop atop
+  
   SHELL
 # FINISH GLOBAL PROVISION SECTION
 
