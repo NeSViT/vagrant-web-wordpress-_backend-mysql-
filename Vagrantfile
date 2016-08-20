@@ -35,7 +35,7 @@ Vagrant.configure("2") do |config|
     
     # START backend PROVISION SECTION
     config.vm.provision "shell", inline: <<-SHELL
-       apt-get install -y mysql
+       
     SHELL
     # FINISH backend PROVISION SECTION
 
@@ -53,7 +53,8 @@ Vagrant.configure("2") do |config|
   		web.vm.hostname = web_hostname +'.'+ web_domain
   		web.vm.network "private_network", ip: web_ip_private
   		web.vm.network "public_network"
-  		web.vm.synced_folder "./www/wordpress", "/var/www"
+  		web.vm.synced_folder "wordpress-sources", "/var/www/wordpress"
+      web.vm.synced_folder "web/apache2", "/etc/apache2/sites-available"
 	
   		web.vm.provider "virtualbox" do |web|	
      			web.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
@@ -61,11 +62,13 @@ Vagrant.configure("2") do |config|
 		     	web.memory = web_ram
 		  end
 
-    # START backend PROVISION SECTION
+    # START web PROVISION SECTION
     config.vm.provision "shell", inline: <<-SHELL
        apt-get install -y apache2 php5
+       ln -s /etc/apache2/sites-available/web.devops.loc.conf /etc/apache2/sites-enabled/web.devops.loc.conf
+       service apache2 restart
     SHELL
-    # FINISH backend PROVISION SECTION
+    # FINISH web PROVISION SECTION
 	
   end
 # End Config for VM: web
@@ -74,7 +77,7 @@ Vagrant.configure("2") do |config|
 # START GLOBAL PROVISION SECTION
   config.vm.provision "shell", inline: <<-SHELL
      apt-get update
-     apt-get install -y htop atop rsync
+     apt-get install -y htop atop
   SHELL
 # FINISH GLOBAL PROVISION SECTION
 
