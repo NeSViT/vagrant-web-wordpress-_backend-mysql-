@@ -82,6 +82,9 @@ Vagrant.configure("2") do |config|
        echo "INSTALLING APACHE2 AND PHP5"
        apt-get install -y apache2 php5 php5-mysql mysql-client
        
+       echo "DELETE DEFAULT APACHE CONFIG"
+       echo "" > /etc/apache2/sites-available/000-default.conf
+
        echo "CREATE SIMLINK TO FOLDER SITES-ENABLED"
        ln -s /etc/apache2/sites-available/web.devops.loc.conf /etc/apache2/sites-enabled/web.devops.loc.conf
        
