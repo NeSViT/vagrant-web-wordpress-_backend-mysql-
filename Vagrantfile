@@ -41,11 +41,14 @@ Vagrant.configure("2") do |config|
         echo "mysql-server mysql-server/root_password_again password root" | sudo debconf-set-selections
         sudo apt-get -y install mysql-server
         
-        echo "MYSQL: RESTRICT ROOT CONNECT FROM NETWORK TO MYSQL"
-        mysql -uroot -proot -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
-    
         echo "CREATE DATABASE AND USER FOR WORDPRESS"
         /vagrant/backend/mysql/db_config.sh
+
+        echo "COPY NEW MYSQL CONFIG"
+        cp /vagrant/backend/mysql/my.cnf /etc/mysql/my.cnf
+
+        echo "RESTART MYSQL"
+        service mysql restart
     SHELL
 
     # FINISH backend PROVISION SECTION
@@ -63,7 +66,7 @@ Vagrant.configure("2") do |config|
 		web.vm.box = web_box
   		web.vm.hostname = web_hostname +'.'+ web_domain
   		web.vm.network "private_network", ip: web_ip_private
-  		web.vm.network "public_network"
+  		web.vm.network "public_network", bridge: ["wlo1"]
   		web.vm.synced_folder "wordpress-sources", "/var/www/wordpress"
       web.vm.synced_folder "web/apache2", "/etc/apache2/sites-available"
 	
@@ -77,11 +80,14 @@ Vagrant.configure("2") do |config|
     web.vm.provision "shell", inline: <<-SHELL
        
        echo "INSTALLING APACHE2 AND PHP5"
-       apt-get install -y apache2 php5
+       apt-get install -y apache2 php5 php5-mysql mysql-client
        
        echo "CREATE SIMLINK TO FOLDER SITES-ENABLED"
        ln -s /etc/apache2/sites-available/web.devops.loc.conf /etc/apache2/sites-enabled/web.devops.loc.conf
        
+       echo "AUTO SETUP INSTALL.PHP IN WORDPRESS and ADD 10 NEW POSTS"
+       /vagrant/web/wp-cli/wordpress-configure.sh
+
        echo "RESTART APACHE2 SERVICE"
        service apache2 restart
 
@@ -99,7 +105,7 @@ Vagrant.configure("2") do |config|
      apt-get update
      
      echo "INSTALL COMMON SOFTWARE"
-     apt-get install -y htop atop
+     apt-get install -y htop atop lsof
   
   SHELL
 # FINISH GLOBAL PROVISION SECTION
