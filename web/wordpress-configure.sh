@@ -21,4 +21,4 @@ rm -f wp-cli.phar
 echo "CONFIGURE INSTALL.PHP PAGE AUTOMATICALLY"
 # run command from user vagrant to configure wordpress start page 
 sudo -u vagrant -i -- wp core install --path="/var/www/wordpress" --url=10.10.100.20 --title="DEVOPS START" --admin_user=nesvits --admin_password=password --admin_email=nesvits@gmail.com
-sudo -u vagrant -i -- curl http://loripsum.net/api/5 |sudo -u vagrant -i -- wp post generate --path="/var/www/wordpress" --post_content --count=10
+sudo -u vagrant -i -- curl http://loripsum.net/api/5 | sudo -u vagrant -i -- wp post generate --path="/var/www/wordpress" --post_content --count=10
