@@ -54,7 +54,14 @@ Vagrant.configure("2") do |config|
         sudo apt-get -y install mysql-server
         
         echo "CREATE DATABASE AND USER FOR WORDPRESS"
-        /vagrant/backend/mysql/db_config.sh
+        # create database for wordpress
+        mysql -uroot -proot -e "CREATE DATABASE wordpress;"
+        # create specific user in mysql
+        mysql -uroot -proot -e "CREATE USER wordpressuser@'10.10.100.20' IDENTIFIED BY 'password';"
+        # grant permissions to all tables in database wordpress to user wordpressuser
+        mysql -uroot -proot -e "GRANT ALL PRIVILEGES ON wordpress.* TO wordpressuser@'10.10.100.20' IDENTIFIED BY 'password';"
+        # update permissions
+        mysql -uroot -proot -e "FLUSH PRIVILEGES;"
 
         echo "COPY NEW MYSQL CONFIG"
         cp /vagrant/backend/mysql/my.cnf /etc/mysql/my.cnf
@@ -91,17 +98,37 @@ Vagrant.configure("2") do |config|
     # START web PROVISION SECTION
     web.vm.provision "shell", inline: <<-SHELL
        
-       echo "INSTALLING APACHE2 AND PHP5"
-       apt-get install -y apache2 php5 php5-mysql mysql-client
+      echo "INSTALLING APACHE2 AND PHP5"
+      apt-get install -y apache2 php5 php5-mysql mysql-client
        
-       echo "INSERT DIRECTORY ROOT TO DEFAULT APACHE CONFIG"
-       sed -i 's/html/wordpress/g' /etc/apache2/sites-available/000-default.conf
-       
-       echo "AUTO SETUP INSTALL.PHP IN WORDPRESS and ADD 10 NEW POSTS"
-       /vagrant/web/wordpress-configure.sh
+      echo "INSERT DIRECTORY ROOT TO DEFAULT APACHE CONFIG"
+      sed -i 's/html/wordpress/g' /etc/apache2/sites-available/000-default.conf
 
-       echo "RESTART APACHE2 SERVICE"
-       service apache2 restart
+      # script provide custom parameters for wordpress using wp cli: http://wp-cli.org/commands/core/install/
+      # wordpress folder = /var/www/wordpress
+      # ip for wp site = 10.10.100.20
+      # wp title = DEVOPS START
+      # admin user = nesvits
+      # admin password = password
+      # admin email = nesvits@gmail.com
+
+      echo "INSTALL WP-CLI PACKET FOR RULING WORDPRESS FROM CONSOLE"
+      # Download wp-cli
+      curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+      # set execute permissions to downloaded file
+      chmod +x wp-cli.phar
+      # move file to custom derectory
+      sudo mv wp-cli.phar /usr/local/bin/wp
+      # delete downloaded file
+      rm -f wp-cli.phar
+
+      echo "CONFIGURE INSTALL.PHP PAGE AUTOMATICALLY"
+      # run command from user vagrant to configure wordpress start page 
+      sudo -u vagrant -i -- wp core install --path="/var/www/wordpress" --url=10.10.100.20 --title="DEVOPS START" --admin_user=nesvits --admin_password=password --admin_email=nesvits@gmail.com
+      sudo -u vagrant -i -- curl http://loripsum.net/api/5 | sudo -u vagrant -i -- wp post generate --path="/var/www/wordpress" --post_content --count=10
+
+      echo "RESTART APACHE2 SERVICE"
+      service apache2 restart
 
     SHELL
     # FINISH web PROVISION SECTION
